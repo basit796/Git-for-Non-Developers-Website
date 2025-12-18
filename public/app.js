@@ -45,7 +45,14 @@ async function sendMessage() {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorMessage = response.status >= 500 
+                ? 'Server temporarily unavailable. Please try again in a moment.'
+                : response.status === 429
+                ? 'Too many requests. Please wait a moment before trying again.'
+                : response.status === 400
+                ? 'Invalid request. Please rephrase your question.'
+                : 'Unable to process your request. Please try again.';
+            throw new Error(errorMessage);
         }
         
         const data = await response.json();
@@ -59,7 +66,7 @@ async function sendMessage() {
     } catch (error) {
         console.error('Error:', error);
         removeMessage(loadingId);
-        addMessage('assistant', 'Sorry, I encountered an error. Please try again later.');
+        addMessage('assistant', error.message || 'Sorry, I encountered an error. Please try again later.');
     } finally {
         // Re-enable input
         sendButton.disabled = false;

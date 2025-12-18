@@ -8,19 +8,17 @@ class EmbeddingService {
         this.knowledge = gitKnowledge;
     }
 
-    // Simple keyword-based similarity (cosine similarity would be used with real embeddings)
+    // Simple keyword-based similarity using Jaccard similarity coefficient
     calculateSimilarity(query, content) {
-        const queryWords = query.toLowerCase().split(/\s+/);
-        const contentWords = content.toLowerCase().split(/\s+/);
+        const queryWords = new Set(query.toLowerCase().split(/\s+/).filter(w => w.length > 0));
+        const contentWords = new Set(content.toLowerCase().split(/\s+/).filter(w => w.length > 0));
         
-        let matches = 0;
-        queryWords.forEach(word => {
-            if (contentWords.includes(word)) {
-                matches++;
-            }
-        });
+        // Calculate intersection and union
+        const intersection = new Set([...queryWords].filter(word => contentWords.has(word)));
+        const union = new Set([...queryWords, ...contentWords]);
         
-        return matches / Math.max(queryWords.length, 1);
+        // Jaccard similarity: |intersection| / |union|
+        return union.size > 0 ? intersection.size / union.size : 0;
     }
 
     // Find relevant context based on user query
@@ -40,20 +38,25 @@ class EmbeddingService {
         return topResults.filter(item => item.score > 0);
     }
 
-    // Get context string to provide to the agent
+    // Get structured context data to provide to the agent
     getContextForQuery(query) {
         const relevantItems = this.findRelevantContext(query);
         
         if (relevantItems.length === 0) {
-            return "No specific context found. Provide a general helpful response about Git.";
+            return {
+                hasContext: false,
+                items: []
+            };
         }
 
-        let context = "Relevant information from knowledge base:\n\n";
-        relevantItems.forEach((item, index) => {
-            context += `${index + 1}. ${item.topic}:\n${item.content}\n\n`;
-        });
-
-        return context;
+        return {
+            hasContext: true,
+            items: relevantItems.map(item => ({
+                topic: item.topic,
+                content: item.content,
+                score: item.score
+            }))
+        };
     }
 
     // Get all knowledge items (for testing/admin purposes)

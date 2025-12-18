@@ -32,52 +32,25 @@ class AgentService {
     }
 
     // Create a contextual response based on query and retrieved context
-    createContextualResponse(query, context) {
+    createContextualResponse(query, contextData) {
         const queryLower = query.toLowerCase();
         
         // Check if we have relevant context
-        if (context.includes("No specific context found")) {
-            return this.generateGeneralResponse(query);
-        }
-
-        // Parse the context to extract topics and content
-        const sections = [];
-        const lines = context.split('\n');
-        let currentSection = null;
-        
-        for (const line of lines) {
-            const match = line.match(/^(\d+)\.\s+(.+):$/);
-            if (match) {
-                if (currentSection) {
-                    sections.push(currentSection);
-                }
-                currentSection = {
-                    topic: match[2],
-                    content: []
-                };
-            } else if (currentSection && line.trim()) {
-                currentSection.content.push(line.trim());
-            }
-        }
-        if (currentSection) {
-            sections.push(currentSection);
-        }
-
-        if (sections.length === 0) {
+        if (!contextData.hasContext || contextData.items.length === 0) {
             return this.generateGeneralResponse(query);
         }
 
         // Build response from the most relevant sections
         let response = "";
         
-        if (sections.length >= 1) {
-            const firstSection = sections[0];
-            response += firstSection.content.join(' ');
+        if (contextData.items.length >= 1) {
+            const firstItem = contextData.items[0];
+            response += firstItem.content;
         }
         
-        if (sections.length >= 2) {
-            const secondSection = sections[1];
-            response += "\n\n" + secondSection.content.join(' ');
+        if (contextData.items.length >= 2) {
+            const secondItem = contextData.items[1];
+            response += "\n\n" + secondItem.content;
         }
         
         response += "\n\nIs there anything specific about this you'd like me to explain further?";
